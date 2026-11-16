@@ -541,46 +541,55 @@ double uniformTolerance( int w, int h, double mad )
 
 int runShift( const Perturb& perturb )
 {
-	std::printf( "\n=== shift: a uniform zone field set through the test seam. Whole pixels: red and blue are green and the unshifted blue\n"
-	             "    translated, bit for bit. Fractions: the fringe off a crosshatch of soft lines, red and blue against green\n" );
+	std::printf( "\n=== shift: a uniform zone field set through the test seam. Whole pixels, on colour noise: red and blue are the unshifted red and\n"
+	             "    blue translated, bit for bit, and black where the shift uncovers the frame's edge; the unshifted red is the green of the card\n"
+	             "    with red and green swapped (the red tube shows the red signal, through green's spot). Fractions: the fringe off a hatch of\n"
+	             "    soft lines, red and blue against green\n" );
 	for( const Raster& raster : kRasters )
 	{
 		const int w = raster.w, h = raster.h;
-		//Whole pixels, on grey noise: every pixel different.
-		Floats noise = noiseCard( w, h );
-		for( size_t p = 0; p < noise.size(); p += 4 )
-			noise[ p ] = noise[ p + 2 ] = noise[ p + 1 ];
-		Rig shifted, plain;
-		if( !startRig( shifted, w, h, perturb, &noise ) || !startRig( plain, w, h, perturb, &noise ) )
+		//Whole pixels, on colour noise: every pixel and every channel different.
+		const Floats noise = noiseCard( w, h );
+		Floats swapped     = noise;
+		for( size_t p = 0; p < swapped.size(); p += 4 )
+			std::swap( swapped[ p ], swapped[ p + 1 ] );
+		Rig shifted, plain, swap;
+		if( !startRig( shifted, w, h, perturb, &noise ) || !startRig( plain, w, h, perturb, &noise ) || !startRig( swap, w, h, perturb, &swapped ) )
 			return 1;
-		for( Rig* r : { &shifted, &plain } )
+		for( Rig* r : { &shifted, &plain, &swap } )
 			r->plugin.HooksForTest().uniformZones = true;
 		auto& hs        = shifted.plugin.HooksForTest();
 		hs.redShift[ 0 ]  = 3.0;
 		hs.redShift[ 1 ]  = -2.0;
 		hs.blueShift[ 0 ] = -5.0;
 		hs.blueShift[ 1 ] = 4.0;
-		if( !shifted.Render( 2 ) || !plain.Render( 2 ) )
+		if( !shifted.Render( 2 ) || !plain.Render( 2 ) || !swap.Render( 2 ) )
 			return 1;
-		const Floats a = shifted.Output(), p = plain.Output();
-		size_t redDiffer = 0, blueDiffer = 0, compared = 0, greenDiffer = 0, plainRed = 0;
+		const Floats a = shifted.Output(), p = plain.Output(), s = swap.Output();
+		size_t redDiffer = 0, blueDiffer = 0, compared = 0, greenDiffer = 0, plainRed = 0, uncovered = 0, lit = 0;
 		for( int y = 0; y < h; ++y )
 			for( int x = 0; x < w; ++x )
 			{
 				const size_t at = static_cast< size_t >( y ) * w + x;
 				greenDiffer += a[ 4 * at + 1 ] != p[ 4 * at + 1 ];
-				plainRed += p[ 4 * at ] != p[ 4 * at + 1 ];
+				plainRed += p[ 4 * at ] != s[ 4 * at + 1 ];
+				//Where a shifted tube's raster does not reach, the screen is black:
+				//those pixels sample past the frame's edge.
 				const int xr = x - 3, yr = y + 2, xb = x + 5, yb = y - 4;
-				if( xr < 0 || yr >= h || xb >= w || yb < 0 )
+				const bool redOff = xr < 0 || yr >= h, blueOff = xb >= w || yb < 0;
+				uncovered += redOff + blueOff;
+				lit += ( redOff && a[ 4 * at ] != 0.0f ) + ( blueOff && a[ 4 * at + 2 ] != 0.0f );
+				if( redOff || blueOff )
 					continue;
 				++compared;
-				redDiffer += a[ 4 * at ] != a[ 4 * ( static_cast< size_t >( yr ) * w + xr ) + 1 ];
+				redDiffer += a[ 4 * at ] != p[ 4 * ( static_cast< size_t >( yr ) * w + xr ) ];
 				blueDiffer += a[ 4 * at + 2 ] != p[ 4 * ( static_cast< size_t >( yb ) * w + xb ) + 2 ];
 			}
-		Check( redDiffer == 0 && blueDiffer == 0 && greenDiffer == 0 && plainRed == 0,
-		       fmt( "%4dx%-4d whole pixels on grey noise, red (3, -2), blue (-5, 4): of %zu pixels, red differs from green translated at %zu, blue from "
-		            "the unshifted blue translated at %zu, green moved at %zu; unshifted red differs from green at %zu (bit-exact)",
-		            w, h, compared, redDiffer, blueDiffer, greenDiffer, plainRed ) );
+		Check( redDiffer == 0 && blueDiffer == 0 && greenDiffer == 0 && plainRed == 0 && lit == 0,
+		       fmt( "%4dx%-4d whole pixels on colour noise, red (3, -2), blue (-5, 4): of %zu pixels, red differs from the unshifted red translated at %zu, "
+		            "blue from the unshifted blue translated at %zu, green moved at %zu; of %zu uncovered by the shift, %zu not black; the unshifted red "
+		            "differs from the swapped card's green at %zu (all bit-exact)",
+		            w, h, compared, redDiffer, blueDiffer, greenDiffer, uncovered, lit, plainRed ) );
 
 		//Fractions, on the hatch.
 		const Hatch g    = hatchFor( w, h );
@@ -1143,7 +1152,7 @@ int runBloom( const Perturb& perturb )
 				dots.emplace_back( x, y );
 				which.push_back( i );
 			}
-		double worstCurrent = 0.0, worstSum = 0.0, worstVar = 0.0, biggestExcess = 0.0;
+		double worstCurrent = 0.0, worstSum = 0.0, worstVar = 0.0, biggestExcess = 0.0, worstDrive = 0.0;
 		Floats firstOut;
 		size_t rgDiffer = 0;
 		for( const double bloom : { 0.5, 2.0, 8.0 } )
@@ -1165,6 +1174,10 @@ int runBloom( const Perturb& perturb )
 				const size_t p   = static_cast< size_t >( dots[ n ].second ) * w + dots[ n ].first;
 				const double d   = tubes[ 4 * p + 3 ];//the drive the plugin decoded
 				const double cur = tubes[ 4 * p + 2 ];
+				//...against the drive the harness encoded: the float code's rounding
+				//and the shader's pow, 16 float ulps times the decode's condition
+				//number d ln L / d ln c <= 2.4.
+				worstDrive = worse( worstDrive, std::fabs( d / drives[ which[ n ] ] - 1.0 ) / ( 16.0 * 6e-8 * 2.4 ) );
 				const double I   = hCurrent( d, iw );
 				//The current's float evaluation: a few ulps, times the formula's
 				//condition number d ln I / d ln d = 1 + I_w d / (I_s + I_w (1 - d)).
@@ -1187,11 +1200,12 @@ int runBloom( const Perturb& perturb )
 				for( size_t p = 0; p < out.size(); p += 4 )
 					rgDiffer += ( out[ p ] != firstOut[ p ] ) + ( out[ p + 1 ] != firstOut[ p + 1 ] );
 		}
-		Check( worstCurrent <= 1.0 && worstSum <= 1.0 && worstVar <= 1.0 && rgDiffer == 0,
-		       fmt( "%4dx%-4d %zu dots at three Bloom settings: current error / tolerance %.3f (8 float ulps x the condition number); blue light's sum / d "
+		Check( worstDrive <= 1.0 && worstCurrent <= 1.0 && worstSum <= 1.0 && worstVar <= 1.0 && rgDiffer == 0,
+		       fmt( "%4dx%-4d %zu dots at three Bloom settings: the decoded drive against the harness's, error / tolerance %.3f (16 float ulps x 2.4); "
+		            "current error / tolerance %.3f (8 float ulps x the condition number); blue light's sum / d "
 		            "error / 1e-5 %.3f; blue variance error / tolerance %.3f (excess up to %.4f px^2; tolerance 1e-4 of the variance + 1e-7 (it + 1)); red and "
 		            "green values changed by Bloom: %zu (bit-exact)",
-		            w, h, dots.size(), worstCurrent, worstSum, worstVar, biggestExcess, rgDiffer ) );
+		            w, h, dots.size(), worstDrive, worstCurrent, worstSum, worstVar, biggestExcess, rgDiffer ) );
 	}
 	return Verdict();
 }
@@ -1201,7 +1215,9 @@ int runBloom( const Perturb& perturb )
 //===========================================================================
 int runAlpha( const Perturb& perturb )
 {
-	std::printf( "\n=== alpha: output alpha = mix( a, 1, Mix ); white under alpha 0 changes nothing (at Mix 1 and 0.5); Mix 0 hands the clip through\n" );
+	std::printf( "\n=== alpha: output alpha = mix( a, 1, Mix ); white under alpha 0 changes nothing (at Mix 1 and 0.5); Mix 0 hands the clip through;\n"
+	             "    Mix 0.5 mixes premultiplied, (clip a (1 - m) + projected m) / alpha, against the Mix 1 and Mix 0 renders; a flat colour under\n"
+	             "    alpha 0.25, 0.5, 0.75 and 1 drives the guns with a times its light\n" );
 	for( const Raster& raster : kRasters )
 	{
 		const int w = raster.w, h = raster.h;
@@ -1255,10 +1271,76 @@ int runAlpha( const Perturb& perturb )
 		if( !rw.Render( 1 ) )
 			return 1;
 		const size_t through = differing( rw.Output(), white );
-		Check( worst[ 0 ] <= 1e-6 && worst[ 1 ] <= 1e-6 && shows[ 0 ] == 0 && shows[ 1 ] == 0 && through == 0,
+		//Mix 0.5's colour from the clip and the Mix 1 picture (opaque), in code
+		//values: a few float operations on numbers <= 1. Two fresh instances
+		//rendered to the same instant, so the warm-up drift is the same in both.
+		Floats mixed[ 2 ];
+		for( int k = 0; k < 2; ++k )
+		{
+			Rig rm;
+			if( !startRig( rm, w, h, perturb, &white ) )
+				return 1;
+			rm.Set( PT_CONVERGENCE, 0.2f );
+			rm.Set( PT_COLD_DRIFT, 0.3f );
+			rm.Set( PT_BLUE_FOCUS, 0.7f );
+			rm.Set( PT_BLOOM, ParamFromBloom( 4.0 ) );
+			rm.Set( PT_MIX, mixes[ k ] );
+			if( !rm.Render( 2 ) )
+				return 1;
+			mixed[ k ] = rm.Output();
+		}
+		double worstMix = 0.0;
+		for( size_t p = 0; p < white.size() / 4; ++p )
+		{
+			const double a = white[ 4 * p + 3 ];
+			for( int c = 0; c < 3; ++c )
+			{
+				const double want = ( white[ 4 * p + c ] * a * 0.5 + mixed[ 0 ][ 4 * p + c ] * 0.5 ) / ( a * 0.5 + 0.5 );
+				worstMix          = worse( worstMix, std::fabs( mixed[ 1 ][ 4 * p + c ] - want ) );
+			}
+		}
+		Check( worst[ 0 ] <= 1e-6 && worst[ 1 ] <= 1e-6 && shows[ 0 ] == 0 && shows[ 1 ] == 0 && through == 0 && worstMix <= 1e-6,
 		       fmt( "%4dx%-4d alpha off mix( a, 1, Mix ) by %.2g at Mix 1 and %.2g at Mix 0.5 (tolerance 1e-6); white rather than black under alpha 0 "
-		            "changes %zu values at Mix 1 and %zu at Mix 0.5 (bit-exact); Mix 0: %zu values differ from the clip (bit-exact)",
-		            w, h, worst[ 0 ], worst[ 1 ], shows[ 0 ], shows[ 1 ], through ) );
+		            "changes %zu values at Mix 1 and %zu at Mix 0.5 (bit-exact); Mix 0: %zu values differ from the clip (bit-exact); Mix 0.5's colour off "
+		            "the premultiplied mix by %.2g (tolerance 1e-6)",
+		            w, h, worst[ 0 ], worst[ 1 ], shows[ 0 ], shows[ 1 ], through, worstMix ) );
+
+		//A flat colour in four bands of alpha, the set converged and focused:
+		//inside a band, each channel's light is a times the colour's (straight
+		//alpha over black). Bands of a quarter of the width; 8 px either side
+		//of a boundary left out (the spots are under a pixel here).
+		const double code[ 3 ]  = { 0.8, 0.5, 0.3 };
+		const double alphas[ 4 ] = { 0.25, 0.5, 0.75, 1.0 };
+		Floats bands             = flatCard( w, h, static_cast< float >( code[ 0 ] ), static_cast< float >( code[ 1 ] ), static_cast< float >( code[ 2 ] ) );
+		for( int y = 0; y < h; ++y )
+			for( int x = 0; x < w; ++x )
+				bands[ ( static_cast< size_t >( y ) * w + x ) * 4 + 3 ] = static_cast< float >( alphas[ std::min( 3, 4 * x / w ) ] );
+		Rig rf;
+		if( !startRig( rf, w, h, perturb, &bands ) || !rf.Render( 1 ) )
+			return 1;
+		const Floats of   = rf.Output();
+		double worstLight = 0.0;
+		int inside        = 0;
+		for( int y = 8; y < h - 8; ++y )
+			for( int x = 0; x < w; ++x )
+			{
+				const int band = std::min( 3, 4 * x / w );
+				if( x < band * w / 4 + 8 || x >= ( band + 1 ) * w / 4 - 8 )
+					continue;
+				++inside;
+				const size_t p = static_cast< size_t >( y ) * w + x;
+				for( int c = 0; c < 3; ++c )
+				{
+					const double want = alphas[ band ] * linearOf( static_cast< float >( code[ c ] ) );
+					worstLight        = worse( worstLight, std::fabs( linearOf( of[ 4 * p + c ] ) / want - 1.0 ) );
+				}
+			}
+		//The decode, the blur's float sum and the encode, a few ulps each
+		//through the transfer's condition number 2.4; and the 8-bit-free
+		//float readback decoded in double.
+		Check( worstLight <= 1e-5, fmt( "%4dx%-4d a flat colour at alpha 0.25 / 0.5 / 0.75 / 1, %d pixels inside the bands: each channel's light off a x "
+		                                "its own by %.2e of it (tolerance 1e-5: decode, blur and encode in float, a few ulps each times 2.4)",
+		                                w, h, inside, worstLight ) );
 	}
 	return Verdict();
 }
