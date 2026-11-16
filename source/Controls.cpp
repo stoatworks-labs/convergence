@@ -51,10 +51,12 @@ ControlInfo event( unsigned int id, const char* name, const char* group )
 // guide's "one or two test pattern line thicknesses"); a 5x5 grid (Barco
 // Cine 8, Sony VPH-G90); keystone corrected; a 400 s warm-up (Barco's 20
 // minutes = 3 tau, chosen) from a cold drift of 0.1% (chosen); best focus, no
-// astigmatism; Bloom from Resolume's demo clips (tools/clips.py defaults: the
-// median clip's mean blue current at 320 uA, US 4,845,403's Table 1).
+// astigmatism; Bloom 0.32 mA, US 4,845,403's Table 1 "exciting current for
+// obtaining white color" read as a white raster's current. The demo clips
+// decided the reading (tools/clips.py defaults): read as the average a picture
+// draws, no clip reaches it anywhere in Bloom's range.
 //---------------------------------------------------------------------------
-constexpr double kDefaultBloom = 1.93;
+constexpr double kDefaultBloom = 0.32;
 
 const ControlInfo kTable[] = {
 	standard( PT_CONVERGENCE, "Convergence", "Convergence", ParamFromConvergence( 0.001 ) ),
