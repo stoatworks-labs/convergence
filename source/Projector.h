@@ -121,7 +121,7 @@ Frame Compute( const Settings& s, int width, int height, const OpticsHooks& hook
 
 /// The blur passes' kernels: pixel-integrated Gaussians, cut at ceil(6 sigma)
 /// and normalised, in double, then stored as floats. Rows: 0 horizontal over
-/// texture A (red, green, the current, nothing), 1 horizontal over B (the
+/// texture A (red, green, the current, the drive), 1 horizontal over B (the
 /// four blue layers), 2 and 3 the same vertically. Texel (i + radius, row).
 struct Kernels
 {

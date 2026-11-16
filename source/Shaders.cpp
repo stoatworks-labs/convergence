@@ -33,7 +33,8 @@ vec3 toCode( vec3 c )
 )";
 
 /// The guns' drives. Output 0, texture A: red light, green light, the blue
-/// gun's current I(d) in mA. Output 1, texture B: the blue light d shared
+/// gun's current I(d) in mA, the blue drive d itself (the last two ride the
+/// blur on identity kernels, for the harness and --stats). Output 1, texture B: the blue light d shared
 /// between the layers either side of its own spot variance sigma(I(d))^2,
 /// in proportion to the distance in variance (tent weights over the layer
 /// index), so the mixture's variance is exactly sigma(I(d))^2.
@@ -55,15 +56,15 @@ void main()
 {
 	vec4 src = texelFetch( InputTexture, ivec2( gl_FragCoord.xy ), 0 );
 	vec3 lin = toLinear( src.rgb );
-	if( Premultiply == 1 )
-		lin *= clamp( src.a, 0.0, 1.0 );
 	if( ClampOn == 1 )
 		lin = clamp( lin, 0.0, 1.0 );
+	if( Premultiply == 1 )
+		lin *= clamp( src.a, 0.0, 1.0 );
 	float d       = lin.b;
 	float current = SaturationModel == 1 ? d * Iw : d * IsIw / ( Is + Iw * ( 1.0 - d ) );
 	if( Output == 0 )
 	{
-		FragColor = vec4( lin.r, lin.g, current, 0.0 );
+		FragColor = vec4( lin.r, lin.g, current, d );
 		return;
 	}
 	float x = clamp( SigmaOne2 * pow( current, TwoP ) / LayerStep, 0.0, 3.0 );

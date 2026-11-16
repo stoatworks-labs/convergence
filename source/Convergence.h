@@ -113,8 +113,9 @@ public:
 	{
 		return warm;
 	}
-	/// r red, g green, b the blue gun's current (mA), blurred (the current
-	/// rides an identity kernel): the last frame's texture A.
+	/// The last frame's texture A after the blur: r red, g green (blurred),
+	/// b the blue gun's current in mA, a the blue drive d (both unblurred:
+	/// they ride identity kernels).
 	GLuint TubesTextureID() const
 	{
 		return tubes[ 0 ].TextureID();
