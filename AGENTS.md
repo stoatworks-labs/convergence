@@ -313,6 +313,122 @@ nothing to restart) and Bloom (under 0.0001 on the card at 320 × 180: the blue 
 0.2 px there). Zones, Setup and Warm-up stay alive bare, through the default 0.1% convergence
 error and cold drift.
 
+## The browser demo (2026-11-18)
+
+`demo/` is <https://convergence-demo.stoatworks-labs.com>, built to the fleet's
+`resolume-demo` kit rules (`~/Projects/resolume/specs/DEMO-BRIEF.md`), from intensifier's. What
+a reader of it must know:
+
+- **The shaders are the plugin's**: kVersion and all five raw-string pieces of
+  `source/Shaders.cpp` (kQuadVertex, kCommon and the three passes), spliced by
+  `demo/tools/check_shaders.py --write` into `demo/shaders.js` and compared character for
+  character, with the assembly on both sides (AssembleVertex, Assemble, InitGL's stages,
+  plugin.js's copy) and every uniform any pass declares named in plugin.js. The integers go
+  through `setInt` (Output, Premultiply, ClampOn, the five models, Radius, Row, ZoneCount),
+  `setSampler`, or `gl.uniform2i` (Size, Direction, ViewOrigin); a `.set()` on one fails the
+  check. The vertex stage is the plugin's gl_VertexID triangle, drawn from an empty VAO, not
+  the kit's quad. `tools/verify.sh` runs the check.
+- **The CPU half is a port**, in double, between the PORT and FRAME markers of
+  `demo/plugin.js`: Controls.cpp (the table, geometric and its inverse, OptionIndex and
+  SetupFromParam with `std::round`/`std::lround`'s half away from zero), Projector.cpp
+  (KeystoneE, the spot law, the PCG hash in uint32 arithmetic, ZoneTable's Box-Muller,
+  DriftDirection, Compute with the shipped OpticsHooks folded in, PixelGaussian, BuildKernels
+  with its texels rounded to float), and the CPU half of Convergence.cpp: Power On's edge,
+  UpdateClock's vote and patience, the frame length (clamped to 0.1 s, rounded to the
+  microsecond), the warm-up, the drift, the kernel and zone caches and uploads, ensureBuffers,
+  render()'s six draws over three passes and every uniform in order. `erf` and `erfc` are the
+  page's own (JavaScript has neither): a positive-term series and a continued fraction, no
+  third-party code. Not ported: the log, the About block, ScopedGLState, and the harness's
+  hooks (all off as shipped). The check holds the port to the C++ lines it came from
+  (ORCHESTRATION in check_shaders.py): change Controls, Projector or Convergence.cpp and change
+  the port, then the anchor.
+- **Two controls the kit cannot draw.** Setup (FF_TYPE_INTEGER) is a dropdown of all 1000
+  values, slot s sending s + 1; Power On (FF_TYPE_EVENT) is a toggle the renderer releases
+  after the frame it fires on, so the plugin's code sees a press then a release, one edge.
+  `?power=1` in the URL presses it on load.
+- **The composite's viewport is the input's size**, from the origin. A visitor's picture keeps
+  its own size, so changing Composition after loading one leaves it in the corner.
+- **Premultiplied clips.** The kit's clips and a visitor's picture are premultiplied; the
+  plugin weights light by alpha as for straight alpha (`Premultiply` 1), so a soft edge is
+  weighted twice. Only the "Shape on transparency" clip shows it. And the plugin's output is
+  straight below Mix 1 where the browser composites the canvas as premultiplied, so a partly
+  transparent pixel shows brighter there than in a straight-alpha host. Both on the page.
+- **A frame is the display's refresh**, and the clock is the page's, in seconds (the vote
+  settles on seconds within four frames). The warm-up steps by each frame's own length, so it
+  is the same at any refresh rate; paused, a control change draws a frame with no time passed,
+  so the warm-up holds; Restart is the clock going back, which the plugin takes as no time.
+  A background tab stops the kit's clock, so the set does not warm while nobody watches.
+- **Bloom is drawn at its real size**: sigma 0.06 px at 960 × 540 at the default, 0.63 px at
+  10 mA. The page says where to look (fine bright blue detail, 1920 × 1080, zoomed in) and
+  does not exaggerate it.
+- **The page's own `differences` list says all of this on the page.** Keep it true. The line
+  under the picture (the zone error in pixels, the cold drift left, the keystone's spread at
+  the edges, the blue spot, the kernels' width, the frame's length) is the page's, and says
+  so. The presets are the page's (the plugin declares none; one presses Power On).
+
+How it was verified, and how to again (it needs this Mac's GPU and Chrome, so verify.sh does
+not run it):
+
+- `python3 demo/tools/crosscheck/crosscheck.py --cvtest build/cvtest [--size 960x540]`. The
+  table of controls first, against `cvtest --list` (names, kinds including integer and event,
+  defaults; Zones' elements by name through `--set`). Then 19 runs of 12 generated frames
+  (straight alpha: a graded ground, a white crosshatch of one- and two-pixel lines, red, green
+  and magenta bars, bright blue patches and one-pixel blue stripes, fine vertical and
+  horizontal stripes, a moving disc, a card whose alpha ramps): the defaults, Convergence 1%,
+  9x9 zones, Setup 42 and 1000, Keystone 1 and 0.5, the fastest warm-up from the most cold
+  drift at 60 and 30 fps, Power On pressed on frame 6 and released on 7, Red Focus 0, Blue
+  Focus 1, Astigmatism 1 with every Focus 0.25, Astigmatism 0.5 with Green Focus 0.75, Bloom
+  10 and 0.1 mA, Mix 0.5 and 0, and every control at an extreme with Power On. Each through
+  `cvtest --pipe --stats [--script]` and through the page's `renderRun` (a fresh instance on
+  the harness's seconds clock, the same cues on the same frames, the frames uploaded as cvtest
+  uploads them, the composite read back from an RGBA32F target and quantised as cvtest
+  quantises). 18 November 2026, M4 Max, Chrome 157.0.8103.79 through ANGLE on Metal, against
+  cvtest on GL 4.1 (an arm64 build of f526c10): at 960 × 540, **219 bytes of 472.8 million
+  differ, each by one level** (124 in Keystone 1, 68 in Keystone 0.5, 22 in the extremes, 5 in
+  Mix 0.5; the other 15 runs identical to the byte); at 480 × 270, 32 of 118.2 million. The
+  warm-up's state equals `--stats`'s nine digits on every frame (worst 5.6e-10 relative, the
+  printing), and so does the mean blue-gun current read back from texture A. Every uniform of
+  all three programs set, none missing, no GL error, no frame refused.
+- The CPU half without a GPU: `cvdump.cpp`, built from Projector.cpp and Controls.cpp, against
+  the page's port at 14 rasters and settings (1×1 to 5760×3240, Setup's rounding at 0.4999,
+  500.5, 1000.6 and -5, Zones at 0.5, Mix 1.5): every float the GPU receives (the 13 params,
+  every kernel texel, every zone texel, the drift, the nine float uniforms; 34,440 in all)
+  identical, every int identical, every double within 2 ulps (the zone table's Box-Muller: the
+  browser's log and cos against the C library's). Built twice, with `-ffp-contract=off` (the
+  tolerance: 8 ulps) and with the plugin's own Release flags (clang fuses multiply-adds on
+  arm64): the same figures both ways. The page's erf and erfc against the C library's at 605
+  points over 0..6: worst 7.8e-16 and 5.4e-15 relative (tolerance 1e-14). PixelGaussian at 14
+  sigmas from 0 to 100: worst 4.1e-13 relative (tolerance 1e-11), at a far tap of the widest
+  kernel, which is the difference of two nearly equal erfc values.
+- Negative controls, each caught (pass: 99.99% of bytes identical over the run, no byte more
+  than one level apart, no frame's mean 0.01 levels apart, the warm-up within 1e-8 relative),
+  at 960 × 540: Convergence one slider step (0.001) off 91.4% of bytes identical; Keystone
+  one step off 94.1%; Warm-up one step off 95.2% (and the warm-up 1.4e-3 apart); Cold Drift
+  one step off 93.2%; Setup one off 59.7%; Red Focus one step off 99.29%; Blue Focus one step
+  off (at Blue Focus 1) 99.32%; Astigmatism one step off 97.0%; Bloom one step off (at 10 mA)
+  98.7%; Mix one step off 97.0%; a press of Power On the page never sees 93.8%.
+- Flash, by xenon's rule (`demo/tools/crosscheck/flash.py`, flashcheck.py's transitions: an
+  opposing change of 0.1 of white whose darker end is below 0.8; more than 6 in any second
+  fails; the whole frame and 5 × 5 windows a third of the frame each way), on the page's own
+  instance and clips read back at 960 × 540, 60 fps, 5 s a case, over the backdrop as the
+  canvas composites: every clip at the defaults; every control at an extreme at once from a
+  cold start; Power On pressed 2, 6 and 10 times a second at the most Cold Drift and the
+  shortest Warm-up; every control flipped between its extremes 10 times a second, on the bars
+  and on the transparent clip over white. **At most one transition in any second in any
+  window**, none over the whole frame: the projector moves edges by pixels, and no move
+  changes an area's light. The one exception is Mix over a transparent clip: at 0 the backdrop
+  shows through, at 1 the projected picture fills it, black where no gun is driven. Over
+  White, flipping Mix 0↔1 at 1, 2, 3, 4 and 6 times a second gives 2, 4, 7, 8 and 13
+  transitions a second (a window); over the kit's checkerboard, at most 1. No gate: nothing
+  flashes without the visitor's hand, and it is the plugin's documented Mix. The page carries
+  a photosensitivity note naming that move (and Mix's hint says so); flash.py fails if the
+  note stops being true either way. No held setting measured (the defaults, every extreme)
+  crosses the line.
+
+The thumb (`stoatworks-labs.com/thumbs/convergence.png`) and the project page did not exist
+when the demo went live, so `index.html` has no `project-page` meta and its no-script block
+links only the repository.
+
 ## Open questions
 
 - **Bloom is honest and nearly invisible.** At its real scale the blue spot at 10 mA is 1.26 px

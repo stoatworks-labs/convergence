@@ -77,6 +77,18 @@ step "Shaders"
 tools/glslc.sh || fail "a shader does not compile"
 
 #---------------------------------------------------------------------------
+step "Browser demo"
+#---------------------------------------------------------------------------
+demo_log="$( mktemp )"
+if python3 demo/tools/check_shaders.py >"$demo_log" 2>&1; then
+	echo "ok   demo/shaders.js is source/Shaders.cpp, and the port's C++ is the text it was ported from"
+else
+	sed 's/^/   /' "$demo_log"
+	fail "the demo's shaders, or the C++ its port was made from, have drifted (demo/tools/check_shaders.py)"
+fi
+rm -f "$demo_log"
+
+#---------------------------------------------------------------------------
 step "Submodule"
 #---------------------------------------------------------------------------
 if [[ ! -f external/ffgl/CMakeLists.txt ]]; then

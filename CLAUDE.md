@@ -99,6 +99,23 @@ zone table (`Projector.cpp`, `ZoneTable`), the clock or the warm-up. The spec is
   checks still run only in `tools/verify.sh`, on a Mac.
 - `~/Projects/resolume/convergence`, public at `github.com/stoatworks-labs/convergence`.
 
+## Browser demo
+- `demo/` is <https://convergence-demo.stoatworks-labs.com>; `.github/workflows/deploy.yml`
+  deploys it on a push to main (a route plus a proxied AAAA 100:: record, not a custom
+  domain: `wrangler.toml`).
+- After a shader edit: `python3 demo/tools/check_shaders.py --write` (verify.sh fails on
+  drift). It also fails if a C++ line the page's CPU half was ported from changes (the
+  control table and conversions, Projector's constants, hash, zone table, Compute and
+  kernels, the clock, the warm-up, the buffers, the uniforms): change the port, then the
+  anchor.
+- After a change to Controls, Projector or Convergence.cpp's CPU half: change the port in
+  `demo/plugin.js` (between the PORT and FRAME markers) too.
+- Locally: `python3 -m http.server -d demo`, or `npx wrangler dev` for the real `_headers`.
+- Against the plugin: `python3 demo/tools/crosscheck/crosscheck.py --cvtest build/cvtest`
+  (Chrome and a GPU; builds its own `cvdump` from Projector.cpp and Controls.cpp). Flashes:
+  `python3 demo/tools/crosscheck/flash.py`, which also fails if the page's photosensitivity
+  note stops being true. AGENTS.md has the gaps and the last figures.
+
 ## Diagnostics
 
 `source/Diag.{h,cpp}`: log file only, no crash handler (this runs inside Resolume).

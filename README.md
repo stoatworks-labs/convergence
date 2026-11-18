@@ -58,6 +58,23 @@ Over a transparent part of a clip the projected picture still fills the screen (
 put light there); a transparent pixel drives no gun. The output is opaque at Mix 1, and Mix
 blends premultiplied, so nothing under a transparent pixel ever shows.
 
+## Browser demo
+
+**<https://convergence-demo.stoatworks-labs.com/>** is SW Convergence in a web page: all 13
+controls with their own names, groups and defaults, over the kit's generated clips or a picture
+or video of yours (decoded in the page, never uploaded). The three passes are the plugin's own
+GLSL, spliced unedited (`demo/tools/check_shaders.py`, run by `tools/verify.sh`). What runs
+them (the conversions, the installation's zone table, the warm-up and its clock, the blur
+kernels, the six draws and every uniform) is a JavaScript port, and `demo/tools/crosscheck/`
+runs it and `cvtest --pipe` on the same frames: on this Mac, 19 runs of 12 frames at
+960 × 540 came out identical but for 219 bytes in 473 million, each one level apart, with the
+warm-up and the blue gun's mean current matching the harness on every frame. It is a demo, not
+the plugin, and says what it leaves out: the kit's clips are premultiplied where the plugin
+assumes straight alpha, a frame is the display's refresh, and the page has never been compared
+on another GPU (Bloom is drawn at its real size, so it is as hard to see there as here).
+Moving Mix between 0 and 1 three or more times a second, over the transparent clip with White
+behind it, flashes; the page warns of it.
+
 ## Status
 
 **v0.1.0, local only, 16 November 2026. Never loaded into Resolume.**
