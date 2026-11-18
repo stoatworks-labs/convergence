@@ -222,8 +222,39 @@ exponential shape, τ and Cold Drift; the focus blur's scale S; the calibrated g
 5.5-inch raster filling the frame's height; red and green spots held at 1 mA; Table 1's 320 µA
 as a white raster's current.
 
-Not done: loading it into Resolume on any platform; a Windows build; a user guide, presets, an
-OpenFX port, a browser demo; looking at the demo clips in a show rather than as numbers.
+Not done: presets, an OpenFX port; looking at the demo clips in a show rather than as numbers;
+a moving clip in Resolume.
+
+## In Resolume (v0.1.0, 18 November 2026)
+
+- **Windows, win-lab, Arena 7.27.1 (llvmpipe):** the fleet's gate on the release workflow's
+  dispatched x64 DLL of 5096765: 9 passed, 0 failed, 1 skipped (Power On and Warm-up inert).
+  `plugin-bench/arena/expect/convergence.json` is the expectation: Zones and Setup need
+  Convergence 0.5 and the Focus controls Astigmatism 0.5 (as `tools/sweep.py`). **Warm-up
+  cannot be gated**: the gate probes the low end first, and a 1 s time constant leaves no drift
+  for the high end to show without a Power On press, which the gate never sends.
+- **macOS, Arena 7.29.0, Apple M4 Max**, a local universal build of 5096765 in Extra Effects
+  (removed after), probed over REST on 8080 by the release's `macprobe.py` and `macprobe2.py`
+  (filings' and bolometer's pattern): one layer added over the show, a white 1920×1080
+  crosshatch with scattered dots (Alpha, opacity 1), SW Convergence added by
+  `effect:///video/SW%20Convergence`, every reading off `GET /composition/monitors/1/snapshot.jpg`
+  (middle 3/5): the mean difference, and the red and blue channels' shift against green by FFT
+  cross-correlation (checked on synthetic JPEG shifts: within 0.1 px above 5 px, reading low
+  below 1 px). The picture is static, so the noise floor is 0.2 levels (the default warm-up
+  moving). 18 of 18 parameters shown, defaults as declared; Setup is a ParamRange 1–1000 in
+  Arena's API. Mix 0 equalled the bare still (0.0). The warm-up at τ 10 s, Cold Drift 1%, after
+  a REST Power On: start 0.98% and 0.99% of the width, τ fitted 10.0 and 9.8 s over the
+  readings above 4 px. **Nothing but Power On restarts it in Arena**: a clip retrigger (POST
+  `.../clips/1/connect` on the connected clip), the layer cleared for 6 s (the clip reads
+  Disconnected, the monitor black) and reconnected, the layer bypassed for 6 s, and the
+  composition resized through `/composition` `video.width`/`video.height` (1920×1080 →
+  1280×720 → back): each time the drift came back where an uninterrupted warm-up puts it, and
+  the plugin's log showed no new InitGL. Since Δt is clamped to 0.1 s a frame, the warm-up
+  carrying on through 6 s of a cleared or bypassed layer means **Arena kept calling
+  ProcessOpenGL for it** while it was off screen; the clip's state never read "Previewing".
+  `POST .../clips/1/disconnect` is a 404 in 7.29. The Quit! dialog was not visible to System
+  Events (no windows listed), so the Arena this session launched was stopped with TERM; every
+  .avc's mtime unchanged.
 
 ## Would this hold on another rasteriser, at another raster?
 

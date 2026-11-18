@@ -20,8 +20,10 @@ zone table (`Projector.cpp`, `ZoneTable`), the clock or the warm-up. The spec is
 - Configure: `cmake -B build -DCMAKE_BUILD_TYPE=Release -DCONVERGENCE_BUILD_TOOLS=ON`
 - Fast dev build: add `-DCMAKE_OSX_ARCHITECTURES=arm64`
 - Build: `cmake --build build -j8`
-- Install to Resolume: `cmake --install build` (into Arena's Extra Effects).
-  Never from a shared session on this Mac: nothing here has been loaded into Arena.
+- Install to Resolume: `cmake --install build` (into Arena's Extra Effects). Arena on this
+  Mac opens Allan's current show composition and may be in use: only when it is not
+  running, add one layer for the test, delete it, and quit choosing Quit, never Save & Quit
+  (the show .avc's mtime is the check). The v0.1.0 probe is in AGENTS.md, "In Resolume".
 - Render offline: `./build/cvtest --out /tmp/c.png` (the defaults over the harness's card,
   120 frames in at 60 fps)
 - A clip of your own: `--clip clip.rgba` (raw RGBA at `--size`, top row first)

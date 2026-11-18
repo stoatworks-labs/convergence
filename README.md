@@ -1,9 +1,9 @@
 # convergence
 
 > **AI-assisted project.** This codebase was created with [Claude](https://claude.com/claude-code)
-> (Anthropic), directed and reviewed by a human author. **It has never been loaded into
-> Resolume.** What's established is established by an offline harness, `cvtest`, that drives
-> the real plugin class through the same `ProcessOpenGL` a host calls, in a headless GL
+> (Anthropic), directed and reviewed by a human author. It has been loaded into Resolume
+> Arena on macOS and on Windows and ran there (see [Status](#status)). Everything else below
+> is established by an offline harness, `cvtest`, that drives the real plugin class through the same `ProcessOpenGL` a host calls, in a headless GL
 > context on a synthetic clock, on this Mac's GPU at two rasters and on Apple's software
 > renderer. Read off the picture, the colour fringes at **every zone point** of 5 × 5 and 9 × 9
 > grids (fringes up to 22 px) match the installation's set errors to within **0.514** of a
@@ -58,6 +58,14 @@ Over a transparent part of a clip the projected picture still fills the screen (
 put light there); a transparent pixel drives no gun. The output is opaque at Mix 1, and Mix
 blends premultiplied, so nothing under a transparent pixel ever shows.
 
+**Flashing.** The plugin moves and softens each colour's picture and makes no light of its own:
+measured with the WCAG general-flash rule over all 33 of Resolume's demo clips, at the defaults
+and with every control at an extreme, no clip flashes more often through it than on its own,
+and none goes over three a second. Because its output is opaque, though, toggling Mix (or the
+effect) three or more times a second over a clip with transparent areas and something bright
+behind it alternates that background with black. The
+[user guide](docs/USER-GUIDE.md#flashing) has the numbers.
+
 ## Browser demo
 
 **<https://convergence-demo.stoatworks-labs.com/>** is SW Convergence in a web page: all 13
@@ -77,7 +85,67 @@ behind it, flashes; the page warns of it.
 
 ## Status
 
-**v0.1.0, local only, 16 November 2026. Never loaded into Resolume.**
+**v0.1.0, 18 November 2026, and early days.** It has been loaded into Resolume Arena on
+Windows and on macOS (below), over still pictures: never a moving clip, never in a show. The
+macOS build is Developer ID-signed and notarised. There's a [user guide](docs/USER-GUIDE.md)
+and a [browser demo](#browser-demo), but no OpenFX port and no presets.
+
+### In Resolume
+
+![A white crosshatch on black seen through the plugin a third of a second after Power On: every
+horizontal line has become three, red above, green in place and blue below, and every vertical
+line a yellow one with blue beside it](docs/arena.jpg)
+
+<sub>SW Convergence inside Resolume Arena 7.29.0 on an Apple M4 Max, from Arena's composition
+snapshot over REST, 18 November 2026: a still white crosshatch, a third of a second after Power
+On was pressed over REST with Cold Drift at 1% and Convergence and Keystone at 0, so the only
+error is the cold set's drift: the red and blue pictures 18 px off the green one, each its own
+way.</sub>
+
+- **Windows: Arena 7.27.1 on win-lab, software rendering (Mesa llvmpipe, no GPU)**, the
+  release workflow's x64 DLL of 5096765 (the source this release was tagged from), through the
+  fleet's Arena gate on 18 November 2026: **9 passed, 0 failed, 1 skipped**. Arena loaded it and
+  registered `SW Convergence` `CV01` as an effect; all 18 parameters (with Arena's Opacity, 19)
+  matched name, order, type, range and default; the frame had content, 5.3 levels from the bare
+  input at the defaults against a 0.04-level noise floor; and every control it can set moved the
+  picture, Zones and Setup with Convergence at 0.5 and the Focus controls with Astigmatism at
+  0.5, where they act (Convergence 14.2 levels, Astigmatism 14.0, Setup 12.1, Zones 12.0,
+  Keystone 11.5, Cold Drift 10.9, Mix 5.3, Red, Green and Blue Focus 4.7, 4.4 and 4.4, Bloom
+  1.1). The skip is Power On and Warm-up, recorded inert: the gate sends no presses, and Warm-up
+  shows only over time after one. No shader or error lines in Arena's log, and Arena stayed up.
+  The plugin's own log: llvmpipe (Mesa 26.2), `initialised`, and Arena's clock in milliseconds,
+  detected (scale 0.001).
+- **macOS: Arena 7.29.0 on an Apple M4 Max**, a local universal build of 5096765 (ad-hoc
+  signed, not the notarised download), mounted on a clip over Arena's REST API and read off
+  Arena's composition snapshot (the middle three fifths of a 1920×1080 JPEG: the mean
+  difference, and the red and blue pictures' shift against the green one by cross-correlation),
+  over a still white crosshatch:
+  - all **18** parameters shown (with Arena's own Opacity) at the declared defaults, Zones
+    offering 5x5 and 9x9 and Setup ranging 1 to 1000, and the About line
+    `Convergence v0.1.0 - MIT - Stoatworks Labs, stoatworks-labs.com`. Its log: the M4 Max,
+    `initialised`, and Arena's clock arriving in milliseconds, which it detected (scale 0.001);
+  - Mix 0 gives the bare still exactly (**0.0**); two snapshots a second apart at the defaults
+    differ by **0.2** levels (the default warm-up closing up, slowly);
+  - each control at an extreme against the defaults: Astigmatism **46.1** levels, Convergence
+    **25.5**, Green, Red and Blue Focus **24.9**, **22.1** and **21.3**, Keystone **16.3**,
+    Setup 500 **10.7**, Zones 9x9 **10.5**, Bloom 10 mA **4.7**; with Astigmatism at 1, Green
+    Focus 0 against 1 **8.2** (the two line foci);
+  - **the warm-up on Arena's clock**: Power On pressed over REST with Cold Drift 1% and Warm-up
+    set to 10 s, snapshots over 25 s: the drift started at **0.98%** and **0.99%** of the width
+    (red, blue) and died away with a time constant of **10.0** and **9.8 s**, every reading above
+    4 px within 3.5% of the 1% and 10 s set;
+  - **what restarts it**: nothing but Power On. A clip retrigger, the clip stopped (the layer
+    cleared, the clip reading Disconnected) for 6 s and started again, the layer bypassed for
+    6 s, and the composition's resolution changed over REST from 1920×1080 to 1280×720 and
+    back, each left the warm-up where it was, and it closed up through all of them by as much
+    as the time that had passed (the drift after each within 2% of an uninterrupted warm-up's;
+    after the resolution change the same share of the width). No new `initialised` line in its
+    log through any of them;
+  - Arena was quit without saving (a TERM to the Arena this session had launched; the show's
+    .avc unchanged).
+
+Not measured in Resolume: its cost, a moving clip, whether Arena hands an effect straight or
+premultiplied colour (the plugin assumes straight), and any GPU but the M4 Max and llvmpipe.
 
 ### Measured offline, on macOS
 
@@ -116,9 +184,6 @@ and the CPU's time a frame, were not measured. macOS only.
 
 ### Not established
 
-- **No host has loaded it.** Not Arena, not Avenue, on any platform. `oxbow` (the fleet's test
-  host) reads the bundle and renders through it, which is all.
-- **Windows** has not been built yet: `release.yml` (GitHub Actions) is the first place it will be.
 - **Chosen, not measured:** the throw (1.5 picture widths), red on the right and blue on the
   left, where the zone points sit and how the board interpolates between them, the setting
   errors being independent and normal, the warm-up's exponential shape, its time constant and
@@ -132,8 +197,20 @@ and the CPU's time a frame, were not measured. macOS only.
 - **Resolume's alpha.** The plugin treats a clip's colour as straight alpha, which is what
   Arena's DXV demo clips decode to; whether Resolume hands an effect premultiplied colour has
   not been checked.
-- No scanlines (layer old-cathode for those), no user guide, no presets, no OpenFX port and no
-  browser demo.
+- No scanlines (layer old-cathode for those), no presets and no OpenFX port.
+
+### Open questions
+
+- **Bloom is nearly invisible at real physics.** The blue spot at 10 mA is 1.26 px at 1080p,
+  and the default 0.32 mA a tenth of that. Keep the physics, or add a "spot scale" beyond it?
+- **A higher Bloom default?** A projectionist's real full-white current is likely higher than
+  Table 1's (Philips speaks of 0.5–2 mA); a higher default would show more bloom on bright clips.
+- **A per-zone hand-set mode.** The seeded installation makes every control automatable but
+  cannot set a chosen zone; a zone selector with four sliders would need Resolume to redraw a
+  slider on an effect's value event.
+- **Focus sliders as 0 sharp to 1 soft.** Symmetric about best focus is faithful, but half of
+  each slider repeats the other half when Astigmatism is 0.
+- **A mirror option** for red and blue's placement (red right, blue left is a choice).
 
 ## Build
 
