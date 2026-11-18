@@ -72,7 +72,7 @@ jobs:
       - name: Check the DLL (Windows)
         if: runner.os == 'Windows'
         run: |
-          ./tools/wincheck.ps1 -Dll "build/Release/Convergence.dll" -Name "SW Convergence" -Id CV01 -Kind effect -Params 17 -First "Convergence"
+          ./tools/wincheck.ps1 -Dll "build/Release/Convergence.dll" -Name "SW Convergence" -Id CV01 -Kind effect -Params 18 -First "Convergence"
           if( $LASTEXITCODE ) { exit $LASTEXITCODE }
 
       - name: Derive version
