@@ -22,9 +22,9 @@
 # Set TMPDIR to a directory you can write: on this Mac a heredoc (mutate.sh
 # has one) hangs without it.
 #
-# This repo has no CI and no workflows (it has no remote and may stay
-# private; Actions are for public repos only): this script is the whole of
-# the verification, run on this Mac.
+# CI (.github/workflows/ci.yml) builds on macOS and Windows and runs the
+# checks that need no GL (--list, --offline, glslc); the pixel checks need a
+# GPU and Arena's clips, so this script is where they run, on a Mac.
 #
 set -euo pipefail
 
