@@ -29,6 +29,38 @@ gun hard and its spot grows: the blue phosphor saturates, so bright blue costs i
 disproportionate current. Nothing is drawn: it all comes out of where each tube's picture
 lands and how big each tube's spot is.
 
+<!-- downloads:start -->
+
+## Download
+
+**[v0.1.0](https://github.com/stoatworks-labs/convergence/releases/tag/v0.1.0)** — prebuilt for macOS and Windows. Pick your platform:
+
+<details>
+<summary><b>macOS</b> — Universal (Apple Silicon + Intel)</summary>
+
+| Build | Download | Size |
+| --- | --- | --- |
+| Universal (Apple Silicon + Intel) · .dmg disk image | [`convergence-0.1.0-macos-universal.dmg`](https://github.com/stoatworks-labs/convergence/releases/download/v0.1.0/convergence-0.1.0-macos-universal.dmg) | 224 KB |
+| Universal (Apple Silicon + Intel) · .zip archive | [`convergence-macos-universal.zip`](https://github.com/stoatworks-labs/convergence/releases/latest/download/convergence-macos-universal.zip) | 184 KB |
+
+</details>
+
+<details>
+<summary><b>Windows</b> — x64</summary>
+
+| Build | Download | Size |
+| --- | --- | --- |
+| x64 · .exe installer | [`convergence-0.1.0-windows-x86_64-setup.exe`](https://github.com/stoatworks-labs/convergence/releases/download/v0.1.0/convergence-0.1.0-windows-x86_64-setup.exe) | 248 KB |
+| x64 · .zip archive | [`convergence-windows-x86_64.zip`](https://github.com/stoatworks-labs/convergence/releases/latest/download/convergence-windows-x86_64.zip) | 117 KB |
+
+</details>
+
+All builds, checksums and release notes: [github.com/stoatworks-labs/convergence/releases](https://github.com/stoatworks-labs/convergence/releases).
+
+macOS builds are signed and notarised and open normally. The Windows builds are unsigned, so SmartScreen warns once.
+
+<!-- downloads:end -->
+
 ## Controls
 
 | Group | |
