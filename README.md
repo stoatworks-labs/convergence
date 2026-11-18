@@ -135,8 +135,9 @@ error is the cold set's drift: the red and blue pictures 18 px off the green one
 way.</sub>
 
 - **Windows: Arena 7.27.1 on win-lab, software rendering (Mesa llvmpipe, no GPU)**, the
-  release workflow's x64 DLL of 5096765 (the source this release was tagged from), through the
-  fleet's Arena gate on 18 November 2026: **9 passed, 0 failed, 1 skipped**. Arena loaded it and
+  release workflow's x64 DLL through the fleet's Arena gate on 18 November 2026, first a
+  dispatched build of 5096765 (the source this release was tagged from), then the v0.1.0
+  release zip itself, with the same numbers: **9 passed, 0 failed, 1 skipped**. Arena loaded it and
   registered `SW Convergence` `CV01` as an effect; all 18 parameters (with Arena's Opacity, 19)
   matched name, order, type, range and default; the frame had content, 5.3 levels from the bare
   input at the defaults against a 0.04-level noise floor; and every control it can set moved the

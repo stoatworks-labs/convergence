@@ -228,7 +228,9 @@ a moving clip in Resolume.
 ## In Resolume (v0.1.0, 18 November 2026)
 
 - **Windows, win-lab, Arena 7.27.1 (llvmpipe):** the fleet's gate on the release workflow's
-  dispatched x64 DLL of 5096765: 9 passed, 0 failed, 1 skipped (Power On and Warm-up inert).
+  dispatched x64 DLL of 5096765: 9 passed, 0 failed, 1 skipped (Power On and Warm-up inert);
+  re-run on the v0.1.0 release zip's DLL (a different hash: build timestamps) with the same
+  numbers to the third decimal.
   `plugin-bench/arena/expect/convergence.json` is the expectation: Zones and Setup need
   Convergence 0.5 and the Focus controls Astigmatism 0.5 (as `tools/sweep.py`). **Warm-up
   cannot be gated**: the gate probes the low end first, and a 1 s time constant leaves no drift
