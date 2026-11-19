@@ -61,6 +61,10 @@ macOS builds are signed and notarised and open normally. The Windows builds are 
 
 <!-- downloads:end -->
 
+## Video
+
+[![Convergence: a three-tube CRT projector for Resolume](docs/video-thumb.png)](https://www.youtube.com/watch?v=H9s-xC0yWVI)
+
 ## Controls
 
 | Group | |
